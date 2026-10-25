@@ -1,0 +1,131 @@
+node_modules/
+.git/
+.env
+.env.local
+.env.production
+.next/
+.out/
+build/
+coverage/
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/server.log
+/dev.log
+.dev.log
+.dev.out.log
+prompt/
+test/
+worklog.md
+agent-ctx/
+download/
+examples/
+mini-services/
+tests/
+.zscripts/
+Caddyfile
+# Database
+/db/*.db
+/db/*.db-journal
+# Next.js
+.next/
+/out/
+# Production build
+/build
+# Vercel
+.vercel
+# Prisma
+/db/*.db
+/db/*.db-journal
+# Local data
+local-*
+.next
+# Bun
+bun.lockb
+bun.lock
+# Open source - don't commit secrets
+.env
+.env.local
+.env.*.local
+# Uploads (Vercel handles this via Blob storage)
+/uploads/proofs/
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+local-*
+.claude
+.z-ai-config
+*.log
+dev.log
+dev.out.log
+test
+prompt
+
+server.log
+# Skills directory
+/skills/
+# ---------------------------------------------------------------------------
+# Local data — NEVER commit (secrets / user data). Vercel configures these
+# via its own Environment Variables UI, not via files.
+# ---------------------------------------------------------------------------
+/.env
+.env.local
+/db/*.db
+/db/*.db-journal
+/uploads/proofs/
+
+# ---------------------------------------------------------------------------
+# Sandbox / development artifacts — not part of the deployed app
+# ---------------------------------------------------------------------------
+/agent-ctx
+/download
+/examples
+/mini-services
+/tests
+/worklog.md
+/.zscripts
+/Caddyfile

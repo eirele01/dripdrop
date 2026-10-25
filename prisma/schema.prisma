@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("MEMBER") // ADMIN | MEMBER
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  sessions        Session[]
+  assignedTasks   RefillTask[] @relation("AssignedTasks")
+  schedules       Schedule[]   @relation("ScheduleAssignee")
+  createdSchedules Schedule[]  @relation("ScheduleCreator")
+
+  rotationMemberships RotationMember[]
+  rotationTurns       RotationTurn[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Dispenser {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  schedules Schedule[]
+  tasks     RefillTask[]
+  rotationQueue RotationQueue?
+}
+
+model Schedule {
+  id           String   @id @default(cuid())
+  dispenserId  String
+  recurrence   String   @default("DAILY") // SINGLE | DAILY | WEEKLY:MON,THU
+  startDate    DateTime
+  endDate      DateTime?
+  dueTime      String   @default("09:00") // "HH:mm" in Asia/Shanghai
+  assignedToId String?
+  rotationMembers String? // JSON array of user ids for round-robin
+  createdById  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  dispenser Dispenser @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  assignedTo User?    @relation("ScheduleAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User?    @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  tasks      RefillTask[]
+}
+
+model RefillTask {
+  id          String    @id @default(cuid())
+  scheduleId  String?
+  dispenserId String
+  assignedToId String?
+  dueAt       DateTime
+  status      String    @default("PENDING") // PENDING | DONE | MISSED
+  completedAt DateTime?
+  proofPath   String?
+  waterLevel  String? // FULL | HALF | EMPTY (level before refill)
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  schedule  Schedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  dispenser Dispenser  @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleId, dueAt])
+  @@index([assignedToId, status, dueAt])
+  @@index([dueAt])
+}
+
+// ---------------------------------------------------------------------------
+// Live Rotation Queue — standalone "whose turn is it?" mode with NO dates.
+// Turns advance only when someone logs a refill (or skips), so a dispenser
+// can be refilled many times a day without waiting for scheduled tasks.
+// Completely separate from Schedule/RefillTask (the date/time system).
+// ---------------------------------------------------------------------------
+model RotationQueue {
+  id            String   @id @default(cuid())
+  dispenserId   String   @unique
+  currentUserId String? // whose turn it is right now (null = first active member)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dispenser Dispenser        @relation(fields: [dispenserId], references: [id], onDelete: Cascade)
+  members   RotationMember[]
+  turns     RotationTurn[]
+}
+
+model RotationMember {
+  id       String @id @default(cuid())
+  queueId  String
+  userId   String
+  position Int // order in the rotation (0 = first)
+
+  queue RotationQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([queueId, userId])
+  @@index([queueId, position])
+}
+
+model RotationTurn {
+  id         String   @id @default(cuid())
+  queueId    String
+  userId     String // the person whose turn it was (did the refill / skipped)
+  status     String   @default("DONE") // DONE | SKIPPED
+  proofPath  String?
+  waterLevel String? // FULL | HALF | EMPTY
+  note       String?
+  // Set when the turn was recorded via a scheduled RefillTask completion —
+  // lets stats/leaderboard count tasks + standalone turns without double-counting.
+  taskId     String?
+  createdAt  DateTime @default(now())
+
+  queue RotationQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([queueId, createdAt])
+  @@index([userId, createdAt])
+  @@index([taskId])
+}
